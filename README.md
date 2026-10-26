@@ -63,8 +63,8 @@ tests/       Unit and data-quality tests
 
 ## Progress
 
-- [ ] Phase 1: Foundation (resource group, budget alerts, ADLS, Key Vault)
-- [ ] Phase 2: Batch ingestion with ADF (ELT)
+- [X] Phase 1: Foundation (resource group, budget alerts, ADLS, Key Vault)
+- [X] Phase 2: Batch ingestion with ADF (ELT)
 - [ ] Phase 3: Databricks medallion layers
 - [ ] Phase 4: Streaming with Event Hubs
 - [ ] Phase 5: Orchestration with Databricks Workflows
