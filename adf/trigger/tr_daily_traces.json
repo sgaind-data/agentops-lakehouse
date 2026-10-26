@@ -1,0 +1,35 @@
+{
+    "name": "tr_daily-traces",
+    "properties": {
+        "annotations": [],
+        "runtimeState": "Stopped",
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "pl_ingest_landing_to_bronze",
+                    "type": "PipelineReference"
+                },
+                "parameters": {
+                    "sourceFolder": "traces"
+                }
+            }
+        ],
+        "type": "ScheduleTrigger",
+        "typeProperties": {
+            "recurrence": {
+                "frequency": "Day",
+                "interval": 1,
+                "startTime": "2026-10-26T22:20:00",
+                "timeZone": "Central Standard Time",
+                "schedule": {
+                    "minutes": [
+                        0
+                    ],
+                    "hours": [
+                        2
+                    ]
+                }
+            }
+        }
+    }
+}
