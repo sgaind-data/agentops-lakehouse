@@ -2,7 +2,7 @@
 
 > Observability, FinOps and quality monitoring for AI agents, built end to end on Azure and Databricks.
 
-**Status:** Day 1 of 25. Work in progress, updated as each phase ships.
+**Status:** Phases 1 to 3 complete (Azure foundation, batch ELT, Databricks medallion). Work in progress, updated as each phase ships.
 
 ## The problem
 
@@ -65,7 +65,7 @@ tests/       Unit and data-quality tests
 
 - [X] Phase 1: Foundation (resource group, budget alerts, ADLS, Key Vault)
 - [X] Phase 2: Batch ingestion with ADF (ELT)
-- [ ] Phase 3: Databricks medallion layers
+- [X] Phase 3: Databricks medallion layers
 - [ ] Phase 4: Streaming with Event Hubs
 - [ ] Phase 5: Orchestration with Databricks Workflows
 - [ ] Phase 6: Agent, anomaly detection and LLM-as-judge
