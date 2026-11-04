@@ -69,7 +69,7 @@ tests/       Unit and data-quality tests
 - [X] Phase 4: Streaming with Event Hubs
 - [X] Phase 5: Orchestration with Databricks Workflows
 - [X] Phase 6: Agent, anomaly detection and LLM-as-judge
-- [ ] Phase 7: CI/CD and data contracts
+- [X] Phase 7: CI/CD and data contracts
 - [ ] Phase 8: Write-up, dashboard and teardown
 
 ## Cost discipline
@@ -79,4 +79,4 @@ the streaming components are created only for their phase, and the whole resourc
 
 ## Author
 
-Built by *your name here*. Follow the build log on LinkedIn: *link here*.
+Built by Sarika Gaind.
