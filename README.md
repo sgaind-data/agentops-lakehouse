@@ -68,7 +68,7 @@ tests/       Unit and data-quality tests
 - [X] Phase 3: Databricks medallion layers
 - [X] Phase 4: Streaming with Event Hubs
 - [X] Phase 5: Orchestration with Databricks Workflows
-- [ ] Phase 6: Agent, anomaly detection and LLM-as-judge
+- [X] Phase 6: Agent, anomaly detection and LLM-as-judge
 - [ ] Phase 7: CI/CD and data contracts
 - [ ] Phase 8: Write-up, dashboard and teardown
 
