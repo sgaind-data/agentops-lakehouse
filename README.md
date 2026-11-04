@@ -1,82 +1,95 @@
 # AgentOps Lakehouse
 
-> Observability, FinOps and quality monitoring for AI agents, built end to end on Azure and Databricks.
+**Observability, cost (FinOps) and quality monitoring for AI agents, built end to end on Azure and Databricks.**
 
-**Status:** Phases 1 to 5 complete (Azure foundation, batch ELT, Databricks medallion). Work in progress, updated as each phase ships.
+AI agents are expensive and fail quietly: a prompt grows, a cost line spikes, an answer is confidently wrong, and nobody notices until the bill arrives. AgentOps Lakehouse ingests agent traces, models them in a medallion lakehouse, detects cost anomalies with ML, evaluates answer quality with an LLM judge, and ships through CI/CD.
 
-## The problem
+![Dashboard](docs/images/dashboard.png)
 
-Teams are shipping AI agents faster than they can answer three questions:
-
-1. **What is this agent costing us?** (per agent, per user, per query type, per day)
-2. **Is it behaving?** (latency, errors, tool-call failures, answer quality)
-3. **Can we trust the data pipeline that tells us?** (data contracts, quality checks, self-diagnosing failures)
-
-AgentOps Lakehouse answers these with a medallion lakehouse that ingests agent traces in batch and streaming.
-The twist: the platform monitors a real "Ask the Lakehouse" agent that it also powers, so the project analyzes itself.
+*Databricks AI/BI dashboard: the support-bot's cost spike (top left), its root cause, a 4x jump in prompt size (top right), the anomalies the ML model flagged, and agent answer quality scored by an LLM judge.*
 
 ## Architecture
 
+```mermaid
+flowchart LR
+    subgraph Sources
+        A[Agent traces JSON<br/>batch] --> ADF
+        P[Model pricing JSON] --> ADF
+        E[Event Hubs<br/>Kafka protocol, streaming] 
+    end
+    ADF[Azure Data Factory] --> L[(ADLS Gen2<br/>landing)]
+    L --> B
+    E --> B
+    subgraph Databricks Lakehouse - Unity Catalog
+        B[Bronze<br/>raw, Auto Loader] --> S[Silver<br/>typed, deduped,<br/>quarantine]
+        S --> G[Gold<br/>fact + daily metrics<br/>SCD2 pricing]
+        G --> ML[Anomaly detection<br/>z-score + Isolation Forest<br/>MLflow]
+        G --> AG[Text-to-SQL agent<br/>with guardrails]
+        AG --> J[LLM judge<br/>relevance, faithfulness, clarity]
+    end
+    G --> D[AI/BI dashboard]
+    ML --> D
+    J --> D
+    KV[Key Vault] -.secrets.-> B
+    GH[GitHub Actions<br/>test, validate, deploy] --> WF[Databricks Workflow<br/>via Asset Bundles]
+    WF -.orchestrates.-> B
 ```
-Agent traces (stream)        Pricing + usage files (batch)
-        |                               |
-   Event Hubs                    Azure Data Factory (ELT)
-        |                               |
-        +---------------+---------------+
-                        v
-        ADLS Gen2:  bronze  ->  silver  ->  gold
-                        |
-        Databricks: Auto Loader, Structured Streaming,
-                    Lakeflow pipelines, Workflows, Unity Catalog
-                        |
-        +---------------+-------------------+
-        v               v                   v
-   FinOps dashboard   MLflow anomaly     LLM-as-judge quality scores
-                      detection          + "pipeline doctor" agent
 
-   Key Vault - Managed Identity - Azure Monitor - GitHub Actions CI/CD
-```
+## What it demonstrates
 
-## Tech stack
-
-| Layer | Tools |
+| Area | What was built |
 |---|---|
-| Storage | Azure Data Lake Storage Gen2, Delta Lake |
-| Ingestion | Azure Data Factory (batch ELT), Event Hubs (streaming) |
-| Processing | Azure Databricks, PySpark, Structured Streaming, Lakeflow pipelines |
-| Governance | Unity Catalog, data contracts, quality expectations |
-| ML / AI | MLflow, LLM-as-judge evaluation, retrieval-augmented agent |
-| Security | Key Vault, Managed Identity, RBAC |
-| DevOps | GitHub, GitHub Actions, Databricks Asset Bundles, IaC |
+| Ingestion | Azure Data Factory batch copy to ADLS Gen2; Event Hubs streaming read through the Kafka protocol |
+| Lakehouse | Bronze, silver, gold medallion on Unity Catalog; Auto Loader; Delta MERGE; dedupe; quarantine table for bad rows; schema evolution |
+| Modeling | SCD Type 2 pricing dimension with point-in-time join, so historical cost uses the price in force at the time |
+| Orchestration | Databricks Workflows job (bronze, silver, gold) defined as code with Asset Bundles |
+| ML | Robust z-score baseline vs Isolation Forest, tracked in MLflow, model registered in Unity Catalog |
+| GenAI | Text-to-SQL agent with code-enforced guardrails; LLM-as-judge evaluation validated against human labels |
+| DevOps | Git branching and PRs, pytest, GitHub Actions (test and validate on PR, deploy only on merge to main) |
+| Security | Secrets in Key Vault through a Databricks secret scope; RBAC; no keys in code |
 
-## Repo layout
+## Results
+
+- **Data quality:** 14,140 raw events in, 14,000 unique, 13,789 in silver, 211 quarantined with reasons. Zero null costs in gold.
+- **Anomaly detection:** the z-score baseline flagged 4 agent-days (precision 0.25, recall 1.00). Isolation Forest flagged 2 (precision 0.50, recall 1.00): same recall, half the false alarms.
+- **LLM judge:** the first rubric was too lenient and passed a fabricated answer. After tightening it, agreement with human labels rose from 82% to 91%.
+- **Agent quality:** after fixing failures the judge found, the agent's pass rate rose from 78% to 89% (8 of 9 questions).
+- **Deployment:** CI deploy is idempotent (0 created, 0 changed, 1 unchanged on a repeat run).
+
+## Repository layout
 
 ```
-infra/       Infrastructure as code (resource group, storage, Key Vault, Event Hubs)
-adf/         Data Factory pipelines and datasets (exported JSON)
-databricks/  Notebooks, pipelines, workflows, asset bundle config
-ml/          Anomaly detection and evaluation code
-agent/       The "Ask the Lakehouse" agent and trace emitter
-docs/        Diagrams, screenshots, design notes
-tests/       Unit and data-quality tests
+agent/                 text-to-SQL guardrails and the synthetic trace generator
+databricks/notebooks/  bronze, silver, gold and streaming notebooks
+ml/                    anomaly detection and agent / judge notebooks
+tests/                 pytest tests for the guardrails
+docs/                  per-phase notes and the dashboard screenshot
+.github/workflows/     CI/CD pipeline
+databricks.yml         Asset Bundle: the workflow job as code
 ```
 
-## Progress
+## Build log
 
-- [X] Phase 1: Foundation (resource group, budget alerts, ADLS, Key Vault)
-- [X] Phase 2: Batch ingestion with ADF (ELT)
-- [X] Phase 3: Databricks medallion layers
-- [X] Phase 4: Streaming with Event Hubs
-- [X] Phase 5: Orchestration with Databricks Workflows
-- [X] Phase 6: Agent, anomaly detection and LLM-as-judge
-- [X] Phase 7: CI/CD and data contracts
-- [ ] Phase 8: Write-up, dashboard and teardown
+- [x] Phase 1: Azure foundation (resource group, ADLS Gen2, Key Vault)
+- [x] Phase 2: batch ingestion with Data Factory
+- [x] Phase 3: Databricks medallion (bronze, silver, gold)
+- [x] Phase 4: streaming with Event Hubs
+- [x] Phase 5: orchestration with Workflows
+- [x] Phase 6: anomaly detection, text-to-SQL agent, LLM judge
+- [x] Phase 7: CI/CD with GitHub Actions and Asset Bundles
+- [x] Phase 8: dashboard and write-up
 
-## Cost discipline
+Detailed notes per phase are in [`docs/`](docs/).
 
-Built within a 25-day Azure free trial ($200 credit, spending limit on). Job clusters auto-terminate,
-the streaming components are created only for their phase, and the whole resource group is deleted at the end.
+## Known limitations
 
-## Author
+- CI authenticates with a personal access token; production should use a service principal with OIDC.
+- Only a `dev` bundle target exists.
+- The streaming task is not in the bundle, because Event Hubs was deleted after the phase to stop billing.
+- The judge uses the same model family as the agent, which risks self-preference bias; the labeled set is small (11 examples).
+- The judge still misses one case (a p95 question where the data granularity cannot answer it).
+- Data is synthetic, generated with planted failures (duplicates, nulls, late events, schema drift, a cost spike) so results can be checked against known ground truth.
 
-Built by Sarika Gaind.
+## Cost note
+
+Built on an Azure free trial. Event Hubs (Standard tier, billed hourly) was created for the streaming phase and deleted afterwards. Compute was a single-node cluster within the free-trial core quota, and the dashboard used a serverless SQL warehouse that bills only while running.
