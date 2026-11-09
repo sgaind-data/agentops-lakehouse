@@ -1,10 +1,10 @@
 # Phase 7: CI/CD and data contracts
 
-## What I built
+## What was built
 - **Databricks Asset Bundle** (`databricks.yml`): the pipeline as code. One job, `agentops_daily_pipeline`, with three chained tasks (`bronze_ingest`, `silver_traces`, `gold_metrics`), a single-node job cluster that starts for the run and terminates afterward, and a 06:30 America/Chicago schedule defined as code and kept paused. The `dev` target uses development mode, which prefixes the job name with my username so it cannot collide with other jobs.
-- **Guardrail tests** (`agent/guardrails.py`, `tests/test_guardrails.py`): the agent's SQL contract as code. 8 tests cover SELECT-only, one statement, the table allowlist, forbidden keywords (including a write hidden behind a CTE) and the automatic row limit.
+- **Guardrail tests** (`agent/guardrails.py`, `tests/test_guardrails.py`): the agent's SQL contract as code. 12 tests cover SELECT-only, one statement, the table allowlist, forbidden keywords (including a write hidden behind a CTE), comma joins that would smuggle in a second table, and the automatic row limit. The agent notebook imports this module, so the tested code is the code that runs.
 - **GitHub Actions** (`.github/workflows/ci.yml`):
-  - `test-and-validate` runs on every pull request and every push to `main`: the 8 tests, then `databricks bundle validate`.
+  - `test-and-validate` runs on every pull request and every push to `main`: the 12 tests, then `databricks bundle validate`.
   - `deploy` runs only on a push to `main` and only after the first job passes: `databricks bundle deploy`.
 
 ## Results
@@ -22,10 +22,9 @@
 ## Known limitations
 - Authentication uses a short-lived personal access token (7 days). In production I would use a service principal with OIDC federation, so no long-lived token exists.
 - Only a `dev` target exists. A real setup would add `staging` and `prod` targets with approval gates.
-- The notebook still holds its own copy of the guardrail code. A next step is for the notebook to import the tested module, giving one source of truth.
 - The streaming task is not in the bundle, because Event Hubs was deleted to stop hourly billing.
 - Silver data-quality rules live in a notebook and are not unit tested yet.
 
-## Problems I hit and fixed
+## Problems hit and fixed
 - Homebrew could not install the Databricks CLI (Command Line Tools too old). Used the official prebuilt installer with sudo instead.
 - The Runs list in the UI showed nothing for a few minutes after `bundle run`. The direct Run URL printed by the CLI showed the live run.

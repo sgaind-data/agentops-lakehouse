@@ -10,7 +10,7 @@
 | Linked service | `ls_adls_agentops` | Connection to the data lake using the factory's system-assigned managed identity, no keys |
 | Dataset | `ds_adls_binary` | One parameterized Binary dataset (`container`, `folder`) reused for source and sink |
 | Pipeline | `pl_ingest_landing_to_bronze` | Copies a folder from `landing` into `bronze/raw/<sourceFolder>` unchanged |
-| Trigger | `tr_daily_traces` | Daily schedule at 2 AM Central for `traces`; created and published but left stopped to save credit |
+| Trigger | `tr_daily-traces` | Daily schedule at 2 AM Central for `traces`; created and published but left stopped to save credit |
 
 ## Design decisions and why
 

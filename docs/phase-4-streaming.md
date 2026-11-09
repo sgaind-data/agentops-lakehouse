@@ -1,6 +1,6 @@
 # Phase 4: Streaming with Event Hubs
 
-## What I built
+## What was built
 - Azure Event Hubs (Standard tier) namespace with an event hub `agent-traces` (2 partitions).
 - A producer notebook that emits agent traces shaped like the batch data, with `event_time` set to now, over the Kafka protocol.
 - A Structured Streaming notebook that reads the event hub, parses the JSON into columns and writes a Delta table `bronze.agent_traces_stream`, keeping the Kafka partition and offset.
@@ -21,5 +21,5 @@
 ## Event Hubs vs Kafka
 Event Hubs is a managed Azure service that also speaks the Kafka protocol. Kafka needs you to run the cluster. Event Hubs trades some Kafka features for zero operations.
 
-## Problems I hit and fixed
+## Problems hit and fixed
 - `PERMISSION_DENIED` reading the secret: the Key Vault used RBAC and Databricks had no role. Fixed by assigning Key Vault Secrets User to the AzureDatabricks application.

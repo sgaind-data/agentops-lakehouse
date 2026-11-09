@@ -7,7 +7,7 @@
 | Resource group | `rg-agentops-dev` | Container for every project resource, deleted at the end to stop all costs |
 | Budget | $150 with alerts at 50/75/90% | Early warning on spend, on top of the free trial spending limit |
 | Storage account (ADLS Gen2) | `stagentops...` | Data lake with hierarchical namespace, Standard performance, LRS, Hot tier |
-| Containers | `bronze`, `silver`, `gold` | Medallion architecture layers |
+| Containers | `landing`, `bronze`, `silver`, `gold` | `landing` is the source drop zone; the other three are the medallion layers |
 | Key Vault | `kv-agentops-2026` | Stores the LLM API key, RBAC permission model, soft delete on, purge protection off |
 
 ## Design decisions and why
