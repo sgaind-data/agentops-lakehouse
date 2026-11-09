@@ -28,8 +28,3 @@ The dashboard reads the story in order: what happened (cost), why (tokens), what
 
 ## Teardown
 Paid or trial-limited resources are deleted after the screenshots are captured: the Databricks workspace first, then the resource group, then the access token and GitHub secrets. Event Hubs was already deleted after Phase 4.
-
-## Interview talking points
-- A dashboard is a story, not a chart collection: cost, cause, detection, quality.
-- Using Genie shows prompt precision plus verification against ground truth.
-- Every number on the dashboard traces back to a gold table built by a tested, deployed pipeline.
