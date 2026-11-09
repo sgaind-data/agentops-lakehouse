@@ -50,7 +50,7 @@ flowchart LR
 
 ## Results
 
-- **Data quality:** 14,140 raw events in, 14,000 unique, 13,789 in silver, 211 quarantined with reasons. Zero null costs in gold.
+- **Data quality:** 14,140 raw batch events in, 14,000 unique, 13,789 in silver, 211 quarantined with reasons. The 50 events streamed through Event Hubs bring silver and the gold fact table to 13,839 rows. Zero null costs in gold.
 - **Anomaly detection:** the z-score baseline flagged 4 agent-days (precision 0.25, recall 1.00). Isolation Forest flagged 2 (precision 0.50, recall 1.00): same recall, half the false alarms.
 - **LLM judge:** the first rubric was too lenient and passed a fabricated answer. After tightening it, agreement with human labels rose from 82% to 91%.
 - **Agent quality:** after fixing failures the judge found, the agent's pass rate rose from 78% to 89% (8 of 9 questions).
@@ -98,7 +98,7 @@ The Azure resources below are created by hand (there is no infrastructure-as-cod
    databricks bundle run agentops_daily_pipeline
    ```
 
-   The job runs `bronze_ingest`, then `silver_traces`, then `gold_metrics`. Its daily schedule is created paused. Expected result: 14,140 bronze rows, 14,000 unique traces, 13,789 silver rows, 211 quarantined, and a gold fact table with no null costs.
+   The job runs `bronze_ingest`, then `silver_traces`, then `gold_metrics`. Its daily schedule is created paused. Expected result: 14,140 bronze rows, 14,000 unique traces, 13,789 silver rows, 211 quarantined, and a gold fact table with no null costs. If you also ran the streaming step, silver and gold hold 13,839 rows (the 50 streamed events are added).
 6. **Optional: streaming.** Create an Event Hubs namespace (Standard tier, which includes the Kafka endpoint) with an event hub `agent-traces` (2 partitions), store its connection string in Key Vault, and back a Databricks secret scope with that vault. Then run notebooks `04_stream_producer` and `05_stream_ingest`. Event Hubs bills by the hour, so delete it afterwards. Details are in [Phase 4](docs/phase-4-streaming.md).
 7. **Optional: ML, agent and dashboard.** Import `ml/06_anomaly_detection.ipynb` and `ml/07_ask_the_lakehouse.ipynb` into the workspace and run them after the gold tables exist. They need a hosted model endpoint (the project used `system.ai.gpt-oss-120b`; availability varies by workspace). The dashboard queries are in [`docs/dashboard-datasets.sql`](docs/dashboard-datasets.sql).
 8. **CI/CD.** In your GitHub repo, add the secrets `DATABRICKS_HOST` and `DATABRICKS_TOKEN`. Pull requests then run the tests and `databricks bundle validate`; a merge to `main` also deploys the bundle. For anything beyond a demo, use a service principal instead of a personal access token.
