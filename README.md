@@ -68,6 +68,42 @@ docs/                  per-phase notes and the dashboard screenshot
 databricks.yml         Asset Bundle: the workflow job as code
 ```
 
+## Run the tests locally
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+python -m pytest -q
+```
+
+The 8 guardrail tests check that the text-to-SQL agent only reads the four allowed gold tables and rejects anything that writes or alters data.
+
+## Deploy it yourself
+
+The Azure resources below are created by hand (there is no infrastructure-as-code yet). The Databricks pipeline itself is deployed from this repo with Asset Bundles.
+
+**Prerequisites:** an Azure subscription (a free trial works), the [Databricks CLI](https://docs.databricks.com/dev-tools/cli/install.html), Python 3.11 or newer, and a GitHub account for CI.
+
+1. **Azure foundation.** Create a resource group (`rg-agentops-dev`, East US). Inside it, create an ADLS Gen2 storage account (hierarchical namespace on, LRS, Hot tier) with four containers: `landing`, `bronze`, `silver` and `gold`. Create a Key Vault with the RBAC permission model. Details are in [Phase 1](docs/phase-1-setup.md).
+2. **Generate the data.** Run `python agent/generate_traces.py`. It writes 7 daily JSONL trace files and a model pricing CSV, with planted duplicates, nulls, late events, a schema change and a cost spike. Upload the trace files to `landing/traces/` and the pricing file to `landing/pricing/`.
+3. **Batch ingestion.** Create an Azure Data Factory with a system-assigned managed identity and give it the Storage Blob Data Contributor role on the storage account. Recreate the linked service, dataset, pipeline and trigger from the JSON files in [`adf/`](adf/) (use the `{}` code view in ADF Studio). Run `pl_ingest_landing_to_bronze` once with `sourceFolder` set to `traces` and once set to `pricing`. Files land unchanged in `bronze/raw/`. Details are in [Phase 2](docs/phase-2-ingestion.md).
+4. **Databricks and Unity Catalog.** Create an Azure Databricks workspace in the same resource group. Create an access connector (managed identity) with access to the storage account, a storage credential, and external locations. Then create a catalog `dbw_agentops` with schemas `bronze`, `silver` and `gold`, each with a managed location in ADLS. Details are in [Phase 3](docs/phase-3-databricks.md). A free-trial subscription allows 4 cores, so the bundle uses a single-node cluster.
+5. **Deploy the pipeline.** In `databricks.yml`, set `workspace.host` to your workspace URL, then:
+
+   ```bash
+   databricks auth login --host <your-workspace-url>
+   databricks bundle validate
+   databricks bundle deploy
+   databricks bundle run agentops_daily_pipeline
+   ```
+
+   The job runs `bronze_ingest`, then `silver_traces`, then `gold_metrics`. Its daily schedule is created paused. Expected result: 14,140 bronze rows, 14,000 unique traces, 13,789 silver rows, 211 quarantined, and a gold fact table with no null costs.
+6. **Optional: streaming.** Create an Event Hubs namespace (Standard tier, which includes the Kafka endpoint) with an event hub `agent-traces` (2 partitions), store its connection string in Key Vault, and back a Databricks secret scope with that vault. Then run notebooks `04_stream_producer` and `05_stream_ingest`. Event Hubs bills by the hour, so delete it afterwards. Details are in [Phase 4](docs/phase-4-streaming.md).
+7. **Optional: ML, agent and dashboard.** Import `ml/06_anomaly_detection.ipynb` and `ml/07_ask_the_lakehouse.ipynb` into the workspace and run them after the gold tables exist. They need a hosted model endpoint (the project used `system.ai.gpt-oss-120b`; availability varies by workspace). The dashboard queries are in [`docs/dashboard-datasets.sql`](docs/dashboard-datasets.sql).
+8. **CI/CD.** In your GitHub repo, add the secrets `DATABRICKS_HOST` and `DATABRICKS_TOKEN`. Pull requests then run the tests and `databricks bundle validate`; a merge to `main` also deploys the bundle. For anything beyond a demo, use a service principal instead of a personal access token.
+9. **Tear down.** Delete the Databricks workspace first (its managed resource group goes with it), then the resource group, then revoke the access token and delete the GitHub secrets.
+
 ## Build log
 
 - [x] Phase 1: Azure foundation (resource group, ADLS Gen2, Key Vault)
