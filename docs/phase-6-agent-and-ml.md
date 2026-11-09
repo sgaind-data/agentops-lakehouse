@@ -35,6 +35,6 @@
 - One human rater (me). Real evaluation needs several.
 - The p95 granularity problem is still not fully solved.
 
-## Problems I hit and fixed
+## Problems hit and fixed
 - The Serving page showed no foundation model endpoints. They had moved to Unity Gateway, where `gpt-oss-120b` was available.
 - Judge v1 was too lenient. It accepted a made-up answer because the answer matched the made-up rows. Fixed by telling it to inspect the SQL first.

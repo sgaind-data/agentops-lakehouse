@@ -1,6 +1,6 @@
 # Phase 3: Databricks medallion layers
 
-## What I built
+## What was built
 - Azure Databricks workspace (Hybrid, Trial tier) with a single-node cluster that fits the 4-core trial quota.
 - Unity Catalog: catalog `dbw_agentops` with `bronze`, `silver` and `gold` schemas, each with a managed location in ADLS Gen2.
 - Access path: access connector (managed identity) -> storage credential -> external locations. No keys or passwords in code.
@@ -27,7 +27,7 @@
 - **DECIMAL for money:** floats drift, decimals do not.
 - **One notebook per layer:** each becomes a task in the Phase 5 Workflow.
 
-## Problems I hit and fixed
+## Problems hit and fixed
 - File events validation failed on the external location (optional feature). Used Force create; Auto Loader falls back to directory listing.
 - `DELTA_METADATA_MISMATCH` when overwriting the quarantine table. Delta protects schemas by default, so I added `overwriteSchema` because the change was intentional.
 

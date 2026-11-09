@@ -77,7 +77,7 @@ pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-The 8 guardrail tests check that the text-to-SQL agent only reads the four allowed gold tables and rejects anything that writes or alters data.
+The 12 guardrail tests check that the text-to-SQL agent only reads the four allowed gold tables and rejects anything that writes, alters data, chains statements or joins tables with a comma.
 
 ## Deploy it yourself
 
@@ -85,10 +85,10 @@ The Azure resources below are created by hand (there is no infrastructure-as-cod
 
 **Prerequisites:** an Azure subscription (a free trial works), the [Databricks CLI](https://docs.databricks.com/dev-tools/cli/install.html), Python 3.11 or newer, and a GitHub account for CI.
 
-1. **Azure foundation.** Create a resource group (`rg-agentops-dev`, East US). Inside it, create an ADLS Gen2 storage account (hierarchical namespace on, LRS, Hot tier) with four containers: `landing`, `bronze`, `silver` and `gold`. Create a Key Vault with the RBAC permission model. Details are in [Phase 1](docs/phase-1-setup.md).
+1. **Azure foundation.** Create a resource group (`rg-agentops-dev`, East US). Inside it, create an ADLS Gen2 storage account (hierarchical namespace on, LRS, Hot tier) with four containers: `landing`, `bronze`, `silver` and `gold`. Create a Key Vault with the RBAC permission model. Details are in [Phase 1](docs/phase-1-setup.md). Storage account names are globally unique, so pick your own and replace `stagentops` in `databricks/notebooks/01_bronze_ingest.ipynb`, `databricks/notebooks/05_stream_ingest.ipynb` and `adf/linkedService/ls_adls_agentops.json`.
 2. **Generate the data.** Run `python agent/generate_traces.py`. It writes 7 daily JSONL trace files and a model pricing CSV, with planted duplicates, nulls, late events, a schema change and a cost spike. Upload the trace files to `landing/traces/` and the pricing file to `landing/pricing/`.
 3. **Batch ingestion.** Create an Azure Data Factory with a system-assigned managed identity and give it the Storage Blob Data Contributor role on the storage account. Recreate the linked service, dataset, pipeline and trigger from the JSON files in [`adf/`](adf/) (use the `{}` code view in ADF Studio). Run `pl_ingest_landing_to_bronze` once with `sourceFolder` set to `traces` and once set to `pricing`. Files land unchanged in `bronze/raw/`. Details are in [Phase 2](docs/phase-2-ingestion.md).
-4. **Databricks and Unity Catalog.** Create an Azure Databricks workspace in the same resource group. Create an access connector (managed identity) with access to the storage account, a storage credential, and external locations. Then create a catalog `dbw_agentops` with schemas `bronze`, `silver` and `gold`, each with a managed location in ADLS. Details are in [Phase 3](docs/phase-3-databricks.md). A free-trial subscription allows 4 cores, so the bundle uses a single-node cluster.
+4. **Databricks and Unity Catalog.** Create an Azure Databricks workspace in the same resource group. Create an access connector (managed identity) with access to the storage account, a storage credential, and external locations. Then run [`docs/unity-catalog-setup.sql`](docs/unity-catalog-setup.sql), which creates the external locations, the catalog `dbw_agentops` and the schemas `bronze`, `silver` and `gold`, each with a managed location in ADLS. Details are in [Phase 3](docs/phase-3-databricks.md). A free-trial subscription allows 4 cores, so the bundle uses a single-node cluster.
 5. **Deploy the pipeline.** In `databricks.yml`, set `workspace.host` to your workspace URL, then:
 
    ```bash
@@ -121,6 +121,9 @@ Detailed notes per phase are in [`docs/`](docs/).
 
 - CI authenticates with a personal access token; production should use a service principal with OIDC.
 - Only a `dev` bundle target exists.
+- The SQL guardrail is regex-based, so it fails safe but also rejects some valid queries (for example `EXTRACT(DAY FROM event_date)`); a production version would use a SQL parser.
+- Only the guardrails have unit tests. The silver and gold transformations are verified by row-count reconciliation, not by automated tests.
+- The storage account name is hard-coded in two notebooks and the Data Factory linked service (see the deploy guide).
 - The streaming task is not in the bundle, because Event Hubs was deleted after the phase to stop billing.
 - The judge uses the same model family as the agent, which risks self-preference bias; the labeled set is small (11 examples).
 - The judge still misses one case (a p95 question where the data granularity cannot answer it).

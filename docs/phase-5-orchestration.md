@@ -1,6 +1,6 @@
 # Phase 5: Orchestration with Databricks Workflows
 
-## What I built
+## What was built
 A Databricks Workflow (job) `agentops_daily_pipeline` with three dependent tasks:
 
 `bronze_ingest -> silver_traces -> gold_metrics`
@@ -14,7 +14,7 @@ Each task runs one notebook from `databricks/notebooks/`. A task starts only whe
 ## Why these choices
 - **One task per layer:** a failure points to exactly one stage, and a single stage can be rerun alone.
 - **Dependencies instead of one big notebook:** clearer lineage, retries per task, easier to monitor.
-- **Existing cluster, not a job cluster:** the trial's 4-core quota allows only one cluster. In production I would use a job cluster that starts and stops per run, which costs less.
+- **Existing cluster, not a job cluster:** the trial's 4-core quota allows only one cluster. A job cluster that starts and stops per run costs less, and Phase 7 moved the job to one.
 - **No schedule enabled:** the job supports a cron schedule, kept manual to protect trial credit. It will be defined as code in Phase 7.
 
 ## ADF vs Databricks Workflows
