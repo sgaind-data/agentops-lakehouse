@@ -19,7 +19,7 @@
 - **Tests as the contract:** a rule that is not tested is only a wish. A change that breaks a guardrail fails the pull request.
 - **Secrets by name:** the workflow references `DATABRICKS_HOST` and `DATABRICKS_TOKEN` stored as GitHub secrets. No credential is in the repo.
 
-## Limitations I would state in an interview
+## Known limitations
 - Authentication uses a short-lived personal access token (7 days). In production I would use a service principal with OIDC federation, so no long-lived token exists.
 - Only a `dev` target exists. A real setup would add `staging` and `prod` targets with approval gates.
 - The notebook still holds its own copy of the guardrail code. A next step is for the notebook to import the tested module, giving one source of truth.

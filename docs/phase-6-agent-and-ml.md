@@ -29,7 +29,7 @@
 - Agent v2 re-judged: 89% pass (8 of 9). The CEO question is now refused and passes; the error-rate answer is fixed; the p95 question is still flagged (faithfulness 3).
 - All runs are in MLflow.
 
-## Limitations I would state in an interview
+## Known limitations
 - The judge is the same model that wrote the answers (self-preference bias). In production, use a different model family.
 - The rubric was tuned on the same 11 examples, so agreement is optimistic. Keep a held-out labelled set.
 - One human rater (me). Real evaluation needs several.
