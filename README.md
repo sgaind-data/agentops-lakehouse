@@ -14,7 +14,7 @@ AI agents are expensive and fail quietly: a prompt grows, a cost line spikes, an
 flowchart LR
     subgraph Sources
         A[Agent traces JSON<br/>batch] --> ADF
-        P[Model pricing JSON] --> ADF
+        P[Model pricing CSV] --> ADF
         E[Event Hubs<br/>Kafka protocol, streaming] 
     end
     ADF[Azure Data Factory] --> L[(ADLS Gen2<br/>landing)]
